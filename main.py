@@ -1,4 +1,4 @@
-
+import argparse
 from localdeamon.deamon import Deamon
 from localdeamon.console import console
 from rich.panel import Panel
@@ -29,11 +29,22 @@ def summon_deamon(task: str) -> str:
     return deamon.run(ctx)
 
 def main():
-    pipeline = understand | summon_deamon
+    parser = argparse.ArgumentParser(description='Local Daemon - Minimalistic LLM agent framework')
+    parser.add_argument('task', nargs='?', help='Task for the agent to perform')
+    parser.add_argument('--no-understand', action='store_true', help='Skip the UNDERSTAND phase')
 
-    task = """Check the CPU temperature on lukasz@192.168.1.222."""
+    args = parser.parse_args()
 
-    resp = pipeline(task)
+    if not args.task:
+        parser.print_help()
+        return
+
+    if args.no_understand:
+        resp = summon_deamon(args.task)
+    else:
+        pipeline = understand | summon_deamon
+        resp = pipeline(args.task)
+
     console.print(Panel(Markdown(resp), title="[bold green]Final Response[/bold green]", border_style="green", padding=(1, 2)))
 
 if __name__ == '__main__':

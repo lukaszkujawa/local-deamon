@@ -96,7 +96,7 @@ class ToolRegistry:
         Imports tool modules which triggers @tool decorator registration.
         Call this once during daemon initialization.
         """
-        from localdeamon.tools import exec, read, fetch, search
+        from localdeamon.tools import exec, read, write, fetch, search
 
     @classmethod
     def execute_tool_call(cls, tool_call: dict, verbose: bool = True) -> str:
