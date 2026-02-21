@@ -18,7 +18,7 @@ def _load_dotenv_once() -> None:
         return
 
     root = Path(__file__).resolve().parent.parent
-    load_dotenv(root / ".env", override=False)
+    load_dotenv(root / ".env", override=True)
 
 
 @dataclass(frozen=True)

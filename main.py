@@ -1,6 +1,6 @@
 import argparse
 from localdeamon.deamon import Deamon
-from localdeamon.console import console
+from localdeamon.console import console, _normalize_content
 from rich.panel import Panel
 from rich.markdown import Markdown
 from localdeamon.spell import spell
@@ -18,7 +18,7 @@ def understand(task: str) -> str:
     c.task_output(resp.content)
     c.divider()
 
-    return resp.content
+    return _normalize_content(resp.content)
 
 @spell
 def summon_deamon(task: str) -> str:
@@ -45,7 +45,7 @@ def main():
         pipeline = understand | summon_deamon
         resp = pipeline(args.task)
 
-    console.print(Panel(Markdown(resp), title="[bold green]Final Response[/bold green]", border_style="green", padding=(1, 2)))
+    console.print(Panel(Markdown(_normalize_content(resp)), title="[bold green]Final Response[/bold green]", border_style="green", padding=(1, 2)))
 
 if __name__ == '__main__':
     main()

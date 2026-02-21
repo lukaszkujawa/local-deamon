@@ -16,12 +16,10 @@ def _create_ollama_llm(config) -> BaseChatModel:
         "temperature": config.get_temperature(),
     }
 
-    # Add base URL if configured
     base_url = config.get_base_url()
     if base_url:
         kwargs["base_url"] = base_url
 
-    # Add Ollama-specific parameters if configured
     num_ctx = config.get_num_ctx()
     if num_ctx:
         kwargs["num_ctx"] = num_ctx
@@ -29,6 +27,8 @@ def _create_ollama_llm(config) -> BaseChatModel:
     num_batch = config.get_num_batch()
     if num_batch:
         kwargs["num_batch"] = num_batch
+
+    print(f"🤖 [LLM] Provider: Ollama | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Num CTX: {num_ctx or 'default'} | Base URL: {base_url or 'default'}")
 
     return ChatOllama(**kwargs)
 
@@ -43,15 +43,15 @@ def _create_openai_llm(config) -> BaseChatModel:
         "max_tokens": config.max_tokens,
     }
 
-    # Add API key if configured
     api_key = config.get_api_key()
     if api_key:
         kwargs["api_key"] = api_key
 
-    # Add base URL if configured (for OpenAI-compatible APIs)
     base_url = config.get_base_url()
     if base_url:
         kwargs["base_url"] = base_url
+
+    print(f"🤖 [LLM] Provider: OpenAI | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Max Tokens: {kwargs['max_tokens']}")
 
     return ChatOpenAI(**kwargs)
 
@@ -70,6 +70,8 @@ def _create_anthropic_llm(config) -> BaseChatModel:
     api_key = config.get_api_key()
     if api_key:
         kwargs["api_key"] = api_key
+
+    print(f"🤖 [LLM] Provider: Anthropic | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Max Tokens: {kwargs['max_tokens']}")
 
     return ChatAnthropic(**kwargs)
 

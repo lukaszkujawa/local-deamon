@@ -1,8 +1,42 @@
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
+from typing import Union
 
 console = Console()
+
+def _normalize_content(content: Union[str, list, dict]) -> str:
+    """Normalize content to string (handles different LLM response formats)"""
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                if item.get('type') == 'text' and 'text' in item:
+                    parts.append(item['text'])
+                elif item.get('type') == 'reasoning':
+                    continue
+                elif 'text' in item:
+                    parts.append(item['text'])
+                else:
+                    parts.append(str(item))
+            elif isinstance(item, str):
+                parts.append(item)
+            else:
+                parts.append(str(item))
+        return ''.join(parts)
+
+    if isinstance(content, dict):
+        if content.get('type') == 'text' and 'text' in content:
+            return content['text']
+        if 'text' in content:
+            return content['text']
+        if 'content' in content:
+            return _normalize_content(content['content'])
+
+    return str(content)
 
 def info(msg: str):
     console.print(f"[cyan]ℹ[/cyan] {msg}")
@@ -23,8 +57,9 @@ def tool_call(name: str, args: dict):
 def iteration(num: int):
     console.print(f"\n[bold magenta]Iteration {num}[/bold magenta]")
 
-def task_output(content: str):
-    console.print(Panel(Markdown(content), border_style="cyan", padding=(1, 2)))
+def task_output(content: Union[str, list]):
+    normalized = _normalize_content(content)
+    console.print(Panel(Markdown(normalized), border_style="cyan", padding=(1, 2)))
 
 def divider():
     console.print("[dim]─" * console.width + "[/dim]")

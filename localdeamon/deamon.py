@@ -3,6 +3,7 @@ from localdeamon.context import Context
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from localdeamon.tool_registry import Tool
+from localdeamon.console import _normalize_content
 from localdeamon import console as c
 
 try:
@@ -51,7 +52,7 @@ class Deamon:
             self.ctx.add_ai_message(current_response)
 
             if not current_response.tool_calls:
-                return current_response.content
+                return _normalize_content(current_response.content)
 
             c.iteration(iteration)
             results = Tool.execute_tool_calls(current_response.tool_calls, verbose=True)
@@ -62,4 +63,4 @@ class Deamon:
             current_response = self._safe_invoke(self.ctx.messages)
 
         c.warning(f"Max iterations ({max_iterations}) reached")
-        return current_response.content
+        return _normalize_content(current_response.content)
