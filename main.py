@@ -32,6 +32,11 @@ def summon_deamon(task: str) -> str:
 
     return deamon.run(ctx)
 
+@spell
+def extract_search_results(search_results_json: str) -> str:
+    results = ""
+    return results
+
 def check_service_health(service_name: str, url: str) -> bool:
     try:
         req = urllib.request.Request(f"{url}/health", method='GET')
