@@ -1,8 +1,8 @@
-"""Extract web document spell: Converts raw fetched web content to clean Markdown."""
+"""Extract web document post-processor: Converts raw fetched web content to clean Markdown."""
 
 import json
 from langchain_core.messages import HumanMessage
-from localdeamon.spell import spell
+from localdeamon.post_processor import post_processor
 from localdeamon.prompt import Prompt
 from localdeamon.llm import get_llm
 from localdeamon.console import _normalize_content
@@ -10,7 +10,7 @@ from localdeamon import console as c
 from localdeamon.prompt_logger import invoke_with_logging
 
 
-@spell
+@post_processor
 def extract_web_doc(daemon, fetch_result_json: str) -> str:
     """
     Extract and summarize web document content using daemon's context.

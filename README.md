@@ -1,6 +1,6 @@
 # Local Daemon
 
-A universal LLM agent framework with an agentic loop that executes tools until tasks are complete. Built with Python 3.14 and LangChain.
+A universal LLM agent with an agentic loop that executes tools until tasks are complete. 
 
 ## Features
 

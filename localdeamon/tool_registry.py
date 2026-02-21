@@ -8,12 +8,13 @@ Supports optional post-processors for tool outputs to transform raw results
 before they are added to the agent context.
 """
 
-from typing import Callable, List, Optional, Dict, TYPE_CHECKING
+from typing import Callable, List, Optional, Dict, Union, TYPE_CHECKING
 from langchain_core.tools import tool as langchain_tool, BaseTool
 from localdeamon import console as c
 
 if TYPE_CHECKING:
     from localdeamon.deamon import Deamon
+    from localdeamon.post_processor import PostProcessor
 
 
 class ToolRegistry:
@@ -49,7 +50,7 @@ class ToolRegistry:
     """
 
     _registry: List[BaseTool] = []
-    _post_processors: Dict[str, Callable[["Deamon", str], str]] = {}
+    _post_processors: Dict[str, Union["PostProcessor", Callable[["Deamon", str], str]]] = {}
 
     @classmethod
     def register(cls, tool_instance: BaseTool) -> BaseTool:
@@ -109,21 +110,37 @@ class ToolRegistry:
         cls._post_processors.clear()
 
     @classmethod
-    def register_post_processor(cls, tool_name: str, processor: Callable[["Deamon", str], str]) -> None:
+    def register_post_processor(
+        cls,
+        tool_name: str,
+        processor: Union["PostProcessor", Callable[["Deamon", str], str]]
+    ) -> None:
         """
         Register a post-processor for a tool.
 
         The post-processor transforms the raw tool output before it's added
-        to the agent context. Useful for summarizing verbose outputs.
+        to the agent context. Useful for summarizing verbose outputs like
+        search results or fetched web pages.
 
         Args:
             tool_name: Name of the tool to attach processor to
-            processor: Callable that takes (daemon, raw_output) and returns processed string
+            processor: PostProcessor or callable with signature (daemon, raw_output) -> str
+
+        Example:
+            @post_processor
+            def extract_results(daemon, raw_json):
+                # Use daemon.ctx for context-aware extraction
+                return clean_markdown
+
+            Tool.register_post_processor("search", extract_results)
         """
         cls._post_processors[tool_name] = processor
 
     @classmethod
-    def get_post_processor(cls, tool_name: str) -> Optional[Callable[["Deamon", str], str]]:
+    def get_post_processor(
+        cls,
+        tool_name: str
+    ) -> Optional[Union["PostProcessor", Callable[["Deamon", str], str]]]:
         """
         Get the post-processor for a tool, if registered.
 
@@ -131,7 +148,7 @@ class ToolRegistry:
             tool_name: Name of the tool
 
         Returns:
-            Post-processor function or None
+            Post-processor or None if not registered
         """
         return cls._post_processors.get(tool_name)
 
