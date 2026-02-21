@@ -7,13 +7,11 @@ from typing import List
 
 class Context:
 
-    messages: List[BaseMessage]
-
     def __init__(self):
         now = datetime.now().strftime("%a %d %b %Y, %H:%M:%S")
 
         system_msg = Prompt.load("SYSTEM").render(time=now, dir=os.getcwd())
-        self.messages = [SystemMessage(content=system_msg)]
+        self.messages: List[BaseMessage] = [SystemMessage(content=system_msg)]
 
     def add_user_message(self, message: str):
         """Add a user/human message to the context"""

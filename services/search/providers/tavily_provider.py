@@ -156,11 +156,16 @@ class TavilyProvider:
             if score is not None and score < self._min_score_threshold:
                 continue
 
+            # Truncate snippet to 50 characters to avoid confusing LLM with long/outdated content
+            snippet = r.get("content") or ""
+            if len(snippet) > 50:
+                snippet = snippet[:50] + "..."
+
             results.append(
                 SearchResult(
                     title=r.get("title") or "",
                     url=r.get("url") or "",
-                    snippet=r.get("content") or "",
+                    snippet=snippet,
                     score=score,
                 )
             )

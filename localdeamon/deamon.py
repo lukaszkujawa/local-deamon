@@ -5,6 +5,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from localdeamon.tool_registry import Tool
 from localdeamon.console import _normalize_content
 from localdeamon import console as c
+from localdeamon.prompt_logger import invoke_with_logging
 
 try:
     from ollama._types import ResponseError
@@ -21,16 +22,14 @@ class Deamon:
     until the task is complete.
     """
 
-    ctx: Context = None
-    llm: BaseChatModel = None
-
     def __init__(self):
         Tool.register_builtin()
-        self.llm = get_llm().bind_tools(Tool.all())
+        self.ctx: Context | None = None
+        self.llm: BaseChatModel = get_llm().bind_tools(Tool.all())
 
     def _safe_invoke(self, messages: list, retry: int = 0) -> AIMessage:
         try:
-            return self.llm.invoke(messages)
+            return invoke_with_logging(self.llm, messages)
         except ResponseError as e:
             if "json" in str(e).lower() and retry < 2:
                 c.warning(f"Retry {retry + 1}/2 - Malformed tool call JSON")

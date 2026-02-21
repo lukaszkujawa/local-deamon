@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 from localdeamon.tool_registry import tool
+from localdeamon.subprocess_utils import run_command
 
 
 @tool
@@ -20,25 +21,9 @@ def fetch(url: str) -> str:
         if not script_path.exists():
             return f"Error: Script not found at {script_path}"
 
-        result = subprocess.run(
-            [str(script_path), url],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            cwd=Path.cwd()
-        )
-
-        output = []
-        if result.stdout:
-            output.append(result.stdout)
-        if result.stderr:
-            output.append(f"[stderr]: {result.stderr}")
-        if result.returncode != 0:
-            output.append(f"[exit code: {result.returncode}]")
-
-        return "\n".join(output) if output else "[no output]"
+        return run_command([str(script_path), url], timeout=60)
 
     except subprocess.TimeoutExpired:
         return f"Error: Request timed out after 60 seconds"
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         return f"Error fetching URL: {e}"

@@ -202,17 +202,6 @@ class ToolRegistry:
 
     @classmethod
     def execute_tool_calls(cls, tool_calls: list, daemon: Optional["Deamon"] = None, verbose: bool = True) -> dict[str, str]:
-        """
-        Execute multiple tool calls.
-
-        Args:
-            tool_calls: List of tool call dicts
-            daemon: Daemon instance (required if any tool has post-processor)
-            verbose: Whether to print execution details
-
-        Returns:
-            Dict mapping tool_call_id to result string
-        """
         results = {}
 
         for tool_call in tool_calls:

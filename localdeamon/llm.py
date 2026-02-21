@@ -1,13 +1,14 @@
 from typing import Optional
 from functools import lru_cache
 from langchain_core.language_models import BaseChatModel
-from localdeamon.config import get_config
+from localdeamon.config import get_config, Config
+from localdeamon import console as c
 
 
 _llm_instance: Optional[BaseChatModel] = None
 
 
-def _create_ollama_llm(config) -> BaseChatModel:
+def _create_ollama_llm(config: Config) -> BaseChatModel:
     """Create an Ollama LLM instance"""
     from langchain_ollama import ChatOllama
 
@@ -28,12 +29,12 @@ def _create_ollama_llm(config) -> BaseChatModel:
     if num_batch:
         kwargs["num_batch"] = num_batch
 
-    print(f"🤖 [LLM] Provider: Ollama | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Num CTX: {num_ctx or 'default'} | Base URL: {base_url or 'default'}")
+    c.info(f"🤖 [LLM] Provider: Ollama | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Num CTX: {num_ctx or 'default'} | Base URL: {base_url or 'default'}")
 
     return ChatOllama(**kwargs)
 
 
-def _create_openai_llm(config) -> BaseChatModel:
+def _create_openai_llm(config: Config) -> BaseChatModel:
     """Create an OpenAI LLM instance"""
     from langchain_openai import ChatOpenAI
 
@@ -51,12 +52,12 @@ def _create_openai_llm(config) -> BaseChatModel:
     if base_url:
         kwargs["base_url"] = base_url
 
-    print(f"🤖 [LLM] Provider: OpenAI | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Max Tokens: {kwargs['max_tokens']}")
+    c.info(f"🤖 [LLM] Provider: OpenAI | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Max Tokens: {kwargs['max_tokens']}")
 
     return ChatOpenAI(**kwargs)
 
 
-def _create_anthropic_llm(config) -> BaseChatModel:
+def _create_anthropic_llm(config: Config) -> BaseChatModel:
     """Create an Anthropic LLM instance"""
     from langchain_anthropic import ChatAnthropic
 
@@ -71,7 +72,7 @@ def _create_anthropic_llm(config) -> BaseChatModel:
     if api_key:
         kwargs["api_key"] = api_key
 
-    print(f"🤖 [LLM] Provider: Anthropic | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Max Tokens: {kwargs['max_tokens']}")
+    c.info(f"🤖 [LLM] Provider: Anthropic | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Max Tokens: {kwargs['max_tokens']}")
 
     return ChatAnthropic(**kwargs)
 
