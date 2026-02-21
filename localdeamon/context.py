@@ -32,3 +32,9 @@ class Context:
     def add_tool_message(self, tool_call_id: str, content: str):
         """Add a tool execution result to the context"""
         self.messages.append(ToolMessage(content=content, tool_call_id=tool_call_id))
+
+    @classmethod
+    def fromPrompt(cls, prompt: Prompt, **kwargs):
+        ctx = cls()
+        ctx.add_user_message(prompt.render(**kwargs))
+        return ctx

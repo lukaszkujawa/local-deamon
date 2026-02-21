@@ -3,15 +3,7 @@ from pathlib import Path
 from functools import lru_cache
 from typing import Optional, Set
 
-
 class Prompt:
-    """
-    Prompt template loaded from markdown file with {{variable}} substitution.
-
-    Example:
-        prompt = Prompt.load("greeting")
-        rendered = prompt.render(name="Alice", time="morning")
-    """
 
     _pattern = re.compile(r'\{\{(\w+)\}\}')
 
@@ -21,13 +13,11 @@ class Prompt:
 
     @property
     def variables(self) -> Set[str]:
-        """Extract variable names from template"""
         return set(self._pattern.findall(self.template))
 
     @classmethod
     @lru_cache(maxsize=32)
     def load(cls, name: str, spellbook_dir: Optional[Path] = None) -> "Prompt":
-        """Load prompt from spellbook directory"""
         if spellbook_dir is None:
             spellbook_dir = Path(__file__).resolve().parent.parent / "spellbook"
 
@@ -52,7 +42,6 @@ class Prompt:
         return self._pattern.sub(lambda m: str(kwargs[m.group(1)]), self.template)
 
     def safe_render(self, **kwargs) -> str:
-        """Render with partial substitution - missing variables remain as {{var}}"""
         return self._pattern.sub(
             lambda m: str(kwargs[m.group(1)]) if m.group(1) in kwargs else m.group(0),
             self.template

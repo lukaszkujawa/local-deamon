@@ -7,6 +7,7 @@ automatically registers tools with LangChain and maintains a central registry.
 
 from typing import Callable, List, Optional
 from langchain_core.tools import tool as langchain_tool, BaseTool
+from localdeamon import console as c
 
 
 class ToolRegistry:
@@ -103,31 +104,29 @@ class ToolRegistry:
         tool_args = tool_call["args"]
 
         if verbose:
-            print(f"  → {tool_name}({tool_args})")
+            c.tool_call(tool_name, tool_args)
 
-        # Get the tool
         tool = cls.get(tool_name)
         if not tool:
-            error_msg = f"Error: Tool '{tool_name}' not found"
+            error_msg = f"Tool '{tool_name}' not found"
             if verbose:
-                print(f"    ✗ {error_msg}")
+                c.error(error_msg)
             return error_msg
 
-        # Execute the tool
         try:
             result = tool.invoke(tool_args)
             result_str = str(result)
 
             if verbose:
-                preview = result_str[:100] + '...' if len(result_str) > 100 else result_str
-                print(f"    ✓ Result: {result_str}")
+                preview = result_str[:80] + '...' if len(result_str) > 80 else result_str
+                c.success(f"Result: {preview}")
 
             return result_str
 
         except Exception as e:
-            error_msg = f"Error executing {tool_name}: {e}"
+            error_msg = f"{tool_name} failed: {e}"
             if verbose:
-                print(f"    ✗ {error_msg}")
+                c.error(error_msg)
             return error_msg
 
     @classmethod
@@ -143,9 +142,6 @@ class ToolRegistry:
             Dict mapping tool_call_id to result string
         """
         results = {}
-
-        if verbose and tool_calls:
-            print(f"\nExecuting {len(tool_calls)} tool call(s)...")
 
         for tool_call in tool_calls:
             tool_call_id = tool_call["id"]
