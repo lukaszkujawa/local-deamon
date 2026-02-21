@@ -25,7 +25,7 @@ def main():
     """
     Reduce the size of web search results and documents with LLM post processing
     """
-    #Tool.register_post_processor("search", extract_search_results)
+    #Tool.register_post_processor("search", extract_search_results) # slow, might be not worth it
     Tool.register_post_processor("fetch", extract_web_doc)
 
     if args.no_understand:
