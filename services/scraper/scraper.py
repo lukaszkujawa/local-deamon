@@ -14,11 +14,14 @@ Config: SCRAPER_HOST, SCRAPER_PORT, SCRAPER_FETCH_TIMEOUT_MS,
 import argparse
 import asyncio
 import ipaddress
+import logging
 import os
 import random
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -27,6 +30,32 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import JSONResponse, Response
 import uvicorn
 from playwright.async_api import async_playwright, Browser, Page, TimeoutError as PlaywrightTimeout
+
+
+def setup_logging() -> None:
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+
+    log_file = log_dir / f"scraper_{datetime.now().strftime('%Y%m%d')}.log"
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
+
+    uvicorn_access = logging.getLogger("uvicorn.access")
+    uvicorn_access.handlers = [
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 class WaitStrategy(str, Enum):
@@ -234,29 +263,39 @@ async def health():
 
 @app.get("/fetch_raw")
 async def fetch_raw(url: str = Query(..., description="The URL to scrape")):
+    logger.info(f"GET /fetch_raw - URL: {url}")
     try:
         validate_url(url)
         html = await fetch_html(url)
+        logger.info(f"Successfully fetched {len(html)} bytes from {url}")
         return Response(content=html, media_type="text/html")
     except URLValidationError as e:
+        logger.warning(f"URL validation failed for {url}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except FetchError as e:
+        logger.error(f"Fetch error for {url}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
+        logger.error(f"Unexpected error for {url}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"unexpected error: {str(e)}")
 
 
 @app.get("/fetch")
 async def fetch(url: str = Query(..., description="The URL to scrape")):
+    logger.info(f"GET /fetch - URL: {url}")
     try:
         validate_url(url)
         html = await fetch_html(url)
+        logger.info(f"Successfully fetched {len(html)} bytes from {url}")
         return JSONResponse(content={"url": url, "content": html}, status_code=200)
     except URLValidationError as e:
+        logger.warning(f"URL validation failed for {url}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except FetchError as e:
+        logger.error(f"Fetch error for {url}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
+        logger.error(f"Unexpected error for {url}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"unexpected error: {str(e)}")
 
 
@@ -265,20 +304,25 @@ async def fetch_content(
     url: str = Query(..., description="The URL to scrape"),
     text_only: bool = Query(False, description="Return plain text only (for LLM consumption)"),
 ):
+    logger.info(f"GET /fetch_content - URL: {url}, text_only: {text_only}")
     try:
         validate_url(url)
         html = await fetch_html(url)
         cleaned = extract_content(html)
         content = html_to_plain_text(cleaned) if text_only else cleaned
+        logger.info(f"Successfully processed {len(content)} chars from {url} (format: {'text' if text_only else 'html'})")
         return JSONResponse(
             content={"url": url, "content": content, "format": "text" if text_only else "html"},
             status_code=200,
         )
     except URLValidationError as e:
+        logger.warning(f"URL validation failed for {url}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except FetchError as e:
+        logger.error(f"Fetch error for {url}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
+        logger.error(f"Unexpected error for {url}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"unexpected error: {str(e)}")
 
 

@@ -9,10 +9,12 @@ Supports multiple search APIs via the provider parameter. Normalized response sh
 Config: SEARCH_HOST, SEARCH_PORT, TAVILY_API_KEY (and per-provider keys).
 Loads .env from project root when run from services/search.
 """
+import logging
 import os
 import sys
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -29,6 +31,32 @@ import uvicorn
 from pydantic import BaseModel
 
 from providers.registry import get_available_providers, get_provider, list_providers
+
+
+def setup_logging() -> None:
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+
+    log_file = log_dir / f"search_{datetime.now().strftime('%Y%m%d')}.log"
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
+
+    uvicorn_access = logging.getLogger("uvicorn.access")
+    uvicorn_access.handlers = [
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -148,13 +176,16 @@ async def _run_search(
     max_results: int,
     include_answer: bool,
 ):
+    logger.info(f"Search request - query: '{query}', provider: {provider_name}, max_results: {max_results}, include_answer: {include_answer}")
     prov = get_provider(provider_name)
     if not prov:
+        logger.warning(f"Unknown provider requested: {provider_name}")
         raise HTTPException(
             status_code=400,
             detail=f"Unknown provider: {provider_name}. Available: {list_providers()}",
         )
     if not prov.is_available():
+        logger.warning(f"Provider not available: {provider_name}")
         raise HTTPException(
             status_code=503,
             detail=f"Provider '{provider_name}' is not configured (missing API key?). Available: {get_available_providers()}",
@@ -165,13 +196,16 @@ async def _run_search(
             max_results=max_results,
             include_answer=include_answer,
         )
+        logger.info(f"Search completed - query: '{query}', results: {len(response.results)}, provider: {provider_name}")
         return JSONResponse(
             content=response.model_dump(mode="json"),
             status_code=200,
         )
     except RuntimeError as e:
+        logger.error(f"Search runtime error - query: '{query}', provider: {provider_name}, error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
+        logger.error(f"Search failed - query: '{query}', provider: {provider_name}, error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 

@@ -166,13 +166,17 @@ Complete Docker setup with:
 Commands:
 
 ```bash
-./docker-start.sh           # Start services
+./docker-start.sh           # Start services (auto-restarts if running)
 ./run-agent.sh "task"       # Run agent
+docker compose restart      # Quick restart (no rebuild)
+make restart                # Same as above
 docker compose logs -f      # View logs
 docker compose down         # Stop services
 ```
 
-See [DOCKER.md](DOCKER.md) for details.
+**Need to restart?** See [RESTART_GUIDE.md](RESTART_GUIDE.md) for all restart options.
+
+See [DOCKER.md](DOCKER.md) for complete Docker documentation.
 
 ## Design Principles
 
@@ -201,6 +205,7 @@ See project repository for license information.
 ## Documentation
 
 - [DOCKER.md](DOCKER.md) - Complete Docker deployment guide
+- [RESTART_GUIDE.md](RESTART_GUIDE.md) - How to restart services
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow and build optimization
 - [CLAUDE.md](CLAUDE.md) - Architecture and development guidelines
 - [services/scraper/](services/scraper/) - Scraper service details

@@ -52,6 +52,12 @@ fi
 
 mkdir -p logs
 
+if docker compose ps | grep -q "local-daemon-scraper\|local-daemon-search"; then
+    log_warn "Services are already running. Stopping them first..."
+    docker compose down
+    log_info "Services stopped. Starting fresh..."
+fi
+
 log_info "Building Docker images..."
 docker compose build
 
