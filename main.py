@@ -3,7 +3,7 @@ from localdeamon.console import console, _normalize_content
 from rich.panel import Panel
 from rich.markdown import Markdown
 from localdeamon.config import get_config
-from localdeamon.spells import understand, summon_daemon, extract_search_results
+from localdeamon.spells import understand, summon_daemon, extract_search_results, extract_web_doc
 from localdeamon.health import verify_services_or_exit
 
 def main():
@@ -22,6 +22,7 @@ def main():
 
     from localdeamon.tool_registry import Tool
     Tool.register_post_processor("search", extract_search_results)
+    Tool.register_post_processor("fetch", extract_web_doc)
 
     if args.no_understand:
         resp = summon_daemon(args.task)
