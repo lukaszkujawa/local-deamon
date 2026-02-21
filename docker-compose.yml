@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  scraper:
+    build:
+      context: ./services/scraper
+      dockerfile: Dockerfile
+    container_name: local-daemon-scraper
+    ports:
+      - "${SCRAPER_PORT:-8000}:8000"
+    environment:
+      - SCRAPER_HOST=0.0.0.0
+      - SCRAPER_PORT=8000
+      - SCRAPER_FETCH_TIMEOUT_MS=${SCRAPER_FETCH_TIMEOUT_MS:-15000}
+      - SCRAPER_NETWORK_IDLE_TIMEOUT_MS=${SCRAPER_NETWORK_IDLE_TIMEOUT_MS:-5000}
+      - SCRAPER_ALLOW_PRIVATE_NETWORK=${SCRAPER_ALLOW_PRIVATE_NETWORK:-false}
+      - SCRAPER_ENABLE_LAZY_LOAD=${SCRAPER_ENABLE_LAZY_LOAD:-true}
+      - SCRAPER_MAX_SCROLL_ATTEMPTS=${SCRAPER_MAX_SCROLL_ATTEMPTS:-3}
+      - SCRAPER_RELOAD=${SCRAPER_RELOAD:-false}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - agent-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  search:
+    build:
+      context: ./services/search
+      dockerfile: Dockerfile
+    container_name: local-daemon-search
+    ports:
+      - "${SEARCH_PORT:-8001}:8001"
+    environment:
+      - SEARCH_HOST=0.0.0.0
+      - SEARCH_PORT=8001
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - TAVILY_SEARCH_DEPTH=${TAVILY_SEARCH_DEPTH:-advanced}
+      - TAVILY_MIN_SCORE=${TAVILY_MIN_SCORE:-0.0}
+      - TAVILY_EXCLUDE_DOMAINS=${TAVILY_EXCLUDE_DOMAINS:-}
+      - TAVILY_INCLUDE_DOMAINS=${TAVILY_INCLUDE_DOMAINS:-}
+      - SEARCH_RELOAD=${SEARCH_RELOAD:-false}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - agent-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  agent-network:
+    driver: bridge

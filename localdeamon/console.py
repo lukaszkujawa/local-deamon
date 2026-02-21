@@ -1,9 +1,11 @@
+import os
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
 from typing import Union
 
-console = Console()
+force_color = os.getenv("FORCE_COLOR", "").lower() in ("1", "true", "yes")
+console = Console(force_terminal=force_color or None)
 
 def _normalize_content(content: Union[str, list, dict]) -> str:
     """Normalize content to string (handles different LLM response formats)"""

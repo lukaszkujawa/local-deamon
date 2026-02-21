@@ -1,0 +1,17 @@
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+.pytest_cache
+.mypy_cache
+*.log
+logs
+.DS_Store
+README*
+.dockerignore
