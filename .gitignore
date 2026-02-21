@@ -5,4 +5,4 @@
 CLAUDE.md
 __pycache__/
 *.pyc
-.moltbook
+logs/*

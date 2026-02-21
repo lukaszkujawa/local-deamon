@@ -10,9 +10,12 @@ Config: SEARCH_HOST, SEARCH_PORT, TAVILY_API_KEY (and per-provider keys).
 Loads .env from project root when run from services/search.
 """
 import os
+import sys
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
-# Load project .env so TAVILY_API_KEY etc. are set when running from services/search
 try:
     from dotenv import load_dotenv
     _root = Path(__file__).resolve().parent.parent.parent
@@ -28,13 +31,58 @@ from pydantic import BaseModel
 from providers.registry import get_available_providers, get_provider, list_providers
 
 
-SEARCH_HOST = os.environ.get("SEARCH_HOST", "127.0.0.1")
-SEARCH_PORT = int(os.environ.get("SEARCH_PORT", "8001"))
+@dataclass(frozen=True)
+class SearchConfig:
+    host: str
+    port: int
+    reload: bool
+    tavily_api_key: Optional[str]
 
-app = FastAPI(
-    title="Research Agent – Web Search",
-    description="Microservice for web search. Supports multiple providers (Tavily, etc.) with a unified API.",
-)
+    @classmethod
+    def from_env(cls) -> "SearchConfig":
+        return cls(
+            host=os.getenv("SEARCH_HOST", "127.0.0.1"),
+            port=int(os.getenv("SEARCH_PORT", "8001")),
+            reload=os.getenv("SEARCH_RELOAD", "").lower() in ("1", "true", "yes", "on"),
+            tavily_api_key=os.getenv("TAVILY_API_KEY", "").strip() or None,
+        )
+
+    def validate(self) -> None:
+        if not self.tavily_api_key:
+            self._exit_with_error()
+
+    def _exit_with_error(self) -> None:
+        error_lines = [
+            "",
+            "=" * 80,
+            "CONFIGURATION ERROR: Missing TAVILY_API_KEY",
+            "=" * 80,
+            "",
+            "The search microservice requires a valid Tavily API key to function.",
+            "",
+            "Configuration:",
+            "  1. Get an API key from https://tavily.com",
+            "  2. Add it to your .env file in the project root:",
+            "",
+            "     TAVILY_API_KEY=tvly-your-api-key-here",
+            "",
+            f"  Expected .env location: {_root / '.env'}",
+            "",
+            "Current status:",
+            f"  TAVILY_API_KEY: {'[SET]' if self.tavily_api_key else '[NOT SET]'}",
+            "",
+            "=" * 80,
+            "",
+        ]
+        print("\n".join(error_lines), file=sys.stderr)
+        sys.exit(1)
+
+
+config = SearchConfig.from_env()
+
+
+class SearchError(Exception):
+    pass
 
 
 class SearchBody(BaseModel):
@@ -44,6 +92,23 @@ class SearchBody(BaseModel):
     include_answer: bool = False
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    config.validate()
+    available = get_available_providers()
+    print(f"Search service starting with providers: {available}")
+    if not available:
+        print("WARNING: No search providers are available!", file=sys.stderr)
+    yield
+
+
+app = FastAPI(
+    title="Research Agent – Web Search",
+    description="Microservice for web search. Supports multiple providers (Tavily, etc.) with a unified API.",
+    lifespan=lifespan,
+)
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "search", "providers_available": get_available_providers()}
@@ -51,7 +116,6 @@ async def health():
 
 @app.get("/providers")
 async def providers():
-    """List all registered providers and which have valid config."""
     return {
         "all": list_providers(),
         "available": get_available_providers(),
@@ -105,19 +169,18 @@ async def _run_search(
             content=response.model_dump(mode="json"),
             status_code=200,
         )
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        return JSONResponse(
-            content={"error": str(e)},
-            status_code=500,
-        )
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
-def main():
+def main() -> None:
     uvicorn.run(
         "search:app",
-        host=SEARCH_HOST,
-        port=SEARCH_PORT,
-        reload=os.environ.get("SEARCH_RELOAD", "").lower() in ("1", "true", "yes"),
+        host=config.host,
+        port=config.port,
+        reload=config.reload,
     )
 
 
