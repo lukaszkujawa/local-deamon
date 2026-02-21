@@ -6,12 +6,6 @@ from typing import List
 
 
 class Context:
-    """
-    Manages conversation context and message history for the agent.
-
-    Maintains a list of messages (system, human, AI, tool) that form
-    the conversation history sent to the LLM.
-    """
 
     messages: List[BaseMessage]
 

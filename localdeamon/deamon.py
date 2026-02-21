@@ -1,18 +1,13 @@
-from localdeamon.config import get_config
 from localdeamon.llm import get_llm
 from localdeamon.context import Context
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from localdeamon.tool_registry import Tool
-from localdeamon.prompt import Prompt
 from localdeamon import console as c
-
-import localdeamon.tools
 
 try:
     from ollama._types import ResponseError
 except ImportError:
-    # If ollama is not installed, create a dummy exception class
     class ResponseError(Exception):
         pass
 
@@ -29,6 +24,7 @@ class Deamon:
     llm: BaseChatModel = None
 
     def __init__(self):
+        Tool.register_builtin()
         self.llm = get_llm().bind_tools(Tool.all())
 
     def _safe_invoke(self, messages: list, retry: int = 0) -> AIMessage:
@@ -41,20 +37,8 @@ class Deamon:
             raise
 
     def run(self, ctx: Context) -> str:
-        """
-        tmp_ctx = Context()
-        understand_prompt = Prompt.load("UNDERSTAND").render(task=task)
-        tmp_ctx.add_user_message(understand_prompt)
-
-        refined_task_response = self.safe_invoke(tmp_ctx.messages)
-
-        self.ctx.add_user_message(refined_task_response.content)
-        c.task_output(refined_task_response.content)
-        c.divider()
-        """
         self.ctx = ctx
         initial_response = self._safe_invoke(self.ctx.messages)
-
         return self._agentic_run(initial_response)
 
     def _agentic_run(self, initial_response: AIMessage, max_iterations: int = 20) -> str:

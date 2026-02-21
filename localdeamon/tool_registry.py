@@ -89,6 +89,16 @@ class ToolRegistry:
         cls._registry.clear()
 
     @classmethod
+    def register_builtin(cls) -> None:
+        """
+        Explicitly register all built-in tools.
+
+        Imports tool modules which triggers @tool decorator registration.
+        Call this once during daemon initialization.
+        """
+        from localdeamon.tools import exec, read, fetch, search
+
+    @classmethod
     def execute_tool_call(cls, tool_call: dict, verbose: bool = True) -> str:
         """
         Execute a single tool call.
