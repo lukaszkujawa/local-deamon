@@ -55,7 +55,7 @@ class Deamon:
                 return _normalize_content(current_response.content)
 
             c.iteration(iteration)
-            results = Tool.execute_tool_calls(current_response.tool_calls, verbose=True)
+            results = Tool.execute_tool_calls(current_response.tool_calls, daemon=self, verbose=True)
 
             for tool_call_id, result in results.items():
                 self.ctx.add_tool_message(tool_call_id, result)

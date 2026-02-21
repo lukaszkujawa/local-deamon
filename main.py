@@ -33,9 +33,31 @@ def summon_deamon(task: str) -> str:
     return deamon.run(ctx)
 
 @spell
-def extract_search_results(search_results_json: str) -> str:
-    results = ""
-    return results
+def extract_search_results(daemon, search_results_json: str) -> str:
+    import json
+    from langchain_core.messages import HumanMessage
+
+    try:
+        search_data = json.loads(search_results_json)
+        search_query = search_data.get("query", "unknown")
+
+        prompt = Prompt.load("EXTRACT_WEBSEARCH")
+        rendered = prompt.render(
+            search_query=search_query,
+            websearch_results=search_results_json
+        )
+
+        messages = daemon.ctx.messages.copy()
+        messages.append(HumanMessage(content=rendered))
+
+        resp = get_llm().invoke(messages)
+        return _normalize_content(resp.content)
+
+    except json.JSONDecodeError:
+        return search_results_json
+    except Exception as e:
+        c.warning(f"Failed to extract search results: {e}")
+        return search_results_json
 
 def check_service_health(service_name: str, url: str) -> bool:
     try:
@@ -90,6 +112,9 @@ def main():
         return
 
     verify_services()
+
+    from localdeamon.tool_registry import Tool
+    Tool.register_post_processor("search", extract_search_results)
 
     if args.no_understand:
         resp = summon_deamon(args.task)
