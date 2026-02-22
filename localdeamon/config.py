@@ -67,6 +67,11 @@ class Config:
         batch = self.get_provider_config("NUM_BATCH")
         return int(batch) if batch else None
 
+    def get_num_gpu(self) -> Optional[int]:
+        """Get number of GPUs (Ollama-specific)"""
+        gpu = self.get_provider_config("NUM_GPU")
+        return int(gpu) if gpu else None
+
     def get_scraper_url(self) -> str:
         """Get URL for the scraper service"""
         return os.getenv("HOST_GET_URL", "http://127.0.0.1:8000")
@@ -74,6 +79,10 @@ class Config:
     def get_search_url(self) -> str:
         """Get URL for the search service"""
         return os.getenv("HOST_WEB_SEARCH", "http://127.0.0.1:8001")
+
+    def get_workspace_dir(self) -> str:
+        """Get workspace directory path"""
+        return os.getenv("WORKSPACE_DIR", "./workspace")
 
     def setup_llm(self) -> str:
         """Setup environment variables for LLM provider"""

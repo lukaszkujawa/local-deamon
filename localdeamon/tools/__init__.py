@@ -1,1 +1,1 @@
-__all__ = ['exec', 'read', 'write', 'fetch', 'search']
+__all__ = ['exec', 'read', 'write', 'fetch', 'search', 'think']

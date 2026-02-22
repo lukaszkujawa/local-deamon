@@ -26,8 +26,8 @@ Now respond using this template and the provided USER_REQUEST:
 
 ## Success criteria (testable 1-5 outcomes)
 - [ ] <Outcome 1>
-- [ ] <Outcome 2>
-- [ ] <Outcome 3>
+
+<up to 5 outcomes>
 
 ## Scope
 ### In scope

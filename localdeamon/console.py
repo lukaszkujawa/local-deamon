@@ -56,8 +56,11 @@ def tool_call(name: str, args: dict):
     args_str = ", ".join(f"{k}={repr(v)}" for k, v in args.items())
     console.print(f"  [blue]→[/blue] [bold]{name}[/bold]({args_str})")
 
-def iteration(num: int):
-    console.print(f"\n[bold magenta]Iteration {num}[/bold magenta]")
+def iteration(num: int, context_size_kb: float = None):
+    if context_size_kb is not None:
+        console.print(f"\n[bold magenta]Iteration {num}[/bold magenta] [dim](ctx: {context_size_kb:.1f}KB)[/dim]")
+    else:
+        console.print(f"\n[bold magenta]Iteration {num}[/bold magenta]")
 
 def task_output(content: Union[str, list]):
     normalized = _normalize_content(content)

@@ -5,7 +5,10 @@ Fetches documents from the web via Playwright (JS support + stealth), exposes:
 - GET /health       – health check
 - GET /fetch        – raw HTML as JSON
 - GET /fetch_raw    – raw HTML as text/html
-- GET /fetch_content?url=...&text_only=false – cleaned HTML or plain text
+- GET /fetch_content?url=...&text_only=false – cleaned HTML, plain text, or PDF text
+
+PDF Support: Automatically detects PDF documents by Content-Type or extension,
+downloads them directly, and extracts text content using pypdf.
 
 Config: SCRAPER_HOST, SCRAPER_PORT, SCRAPER_FETCH_TIMEOUT_MS,
         SCRAPER_NETWORK_IDLE_TIMEOUT_MS, SCRAPER_ALLOW_PRIVATE_NETWORK,
@@ -21,6 +24,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from io import BytesIO
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
@@ -28,6 +32,8 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import JSONResponse, Response
+import httpx
+from pypdf import PdfReader
 import uvicorn
 from playwright.async_api import async_playwright, Browser, Page, TimeoutError as PlaywrightTimeout
 
@@ -241,6 +247,47 @@ def html_to_plain_text(html_content: str) -> str:
     return "\n".join(lines)
 
 
+async def is_pdf_url(url: str) -> bool:
+    if url.lower().endswith('.pdf'):
+        logger.info(f"PDF detected by file extension: {url}")
+        return True
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.head(url, follow_redirects=True)
+            content_type = response.headers.get('content-type', '').lower()
+            is_pdf = 'application/pdf' in content_type
+            logger.info(f"PDF detection via HEAD request for {url}: content-type={content_type}, is_pdf={is_pdf}")
+            return is_pdf
+    except Exception as e:
+        logger.warning(f"PDF detection HEAD request failed for {url}: {e}")
+        return url.lower().endswith('.pdf')
+
+
+async def fetch_pdf_text(url: str) -> str:
+    timeout = httpx.Timeout(30.0, connect=10.0)
+
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        response = await client.get(url)
+        response.raise_for_status()
+
+        pdf_bytes = response.content
+        pdf_file = BytesIO(pdf_bytes)
+
+        reader = PdfReader(pdf_file)
+        text_parts = []
+
+        for page_num, page in enumerate(reader.pages, start=1):
+            text = page.extract_text()
+            if text.strip():
+                text_parts.append(f"--- Page {page_num} ---\n{text}")
+
+        if not text_parts:
+            return "PDF downloaded successfully but no text content could be extracted."
+
+        return "\n\n".join(text_parts)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
@@ -251,7 +298,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Research Agent – Scraper",
-    description="Microservice to fetch documents from the web.",
+    description="Microservice to fetch documents from the web with PDF text extraction support.",
     lifespan=lifespan
 )
 
@@ -307,6 +354,18 @@ async def fetch_content(
     logger.info(f"GET /fetch_content - URL: {url}, text_only: {text_only}")
     try:
         validate_url(url)
+
+        is_pdf = await is_pdf_url(url)
+
+        if is_pdf:
+            logger.info(f"Detected PDF document at {url}, extracting text")
+            content = await fetch_pdf_text(url)
+            logger.info(f"Successfully extracted {len(content)} chars from PDF at {url}")
+            return JSONResponse(
+                content={"url": url, "content": content, "format": "pdf_text"},
+                status_code=200,
+            )
+
         html = await fetch_html(url)
         cleaned = extract_content(html)
         content = html_to_plain_text(cleaned) if text_only else cleaned

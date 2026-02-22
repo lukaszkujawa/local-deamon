@@ -32,7 +32,8 @@ def extract_search_results(daemon, search_results_json: str) -> str:
             websearch_results=search_results_json
         )
 
-        messages = [daemon.ctx.messages[1], HumanMessage(content=rendered)]
+        messages = daemon.ctx.messages + [HumanMessage(content=rendered)]
+
         resp = invoke_with_logging(get_llm(), messages)
 
         return _normalize_content(resp.content)

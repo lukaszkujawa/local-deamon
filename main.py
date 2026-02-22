@@ -1,17 +1,18 @@
 import argparse
+import os
+from pathlib import Path
 from localdeamon.console import console, _normalize_content
 from rich.panel import Panel
 from rich.markdown import Markdown
 from localdeamon.config import get_config
-from localdeamon.spells import understand, summon_daemon
-from localdeamon.post_processors import extract_search_results, extract_web_doc
+from localdeamon.spells import summon_daemon
+from localdeamon.post_processors import extract_web_doc, extract_search_results
 from localdeamon.health import verify_services_or_exit
 from localdeamon.tool_registry import Tool
 
 def main():
     parser = argparse.ArgumentParser(description='Local Daemon - Minimalistic LLM agent framework')
     parser.add_argument('task', nargs='?', help='Task for the agent to perform')
-    parser.add_argument('--no-understand', action='store_true', help='Skip the UNDERSTAND phase')
 
     args = parser.parse_args()
 
@@ -22,17 +23,15 @@ def main():
     config = get_config()
     verify_services_or_exit(config)
 
-    """
-    Reduce the size of web search results and documents with LLM post processing
-    """
-    #Tool.register_post_processor("search", extract_search_results) # slow, might be not worth it
-    Tool.register_post_processor("fetch", extract_web_doc)
+    workspace_dir = config.get_workspace_dir()
+    workspace_path = Path(workspace_dir)
+    workspace_path.mkdir(parents=True, exist_ok=True)
+    os.chdir(workspace_path)
 
-    if args.no_understand:
-        resp = summon_daemon(args.task)
-    else:
-        pipeline = understand | summon_daemon
-        resp = pipeline(args.task)
+    Tool.register_post_processor("fetch", extract_web_doc)
+    Tool.register_post_processor("search", extract_search_results)
+
+    resp = summon_daemon(args.task)
 
     console.print(Panel(Markdown(_normalize_content(resp)), title="[bold green]Final Response[/bold green]", border_style="green", padding=(1, 2)))
 

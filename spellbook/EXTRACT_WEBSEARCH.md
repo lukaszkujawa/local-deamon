@@ -9,9 +9,9 @@ You MUST:
 - Do not include raw JSON. Do not include long excerpts.
 - Never include more than 12 words verbatim from any snippet.
 - Prefer primary, authoritative, and specific sources. Avoid SEO/affiliate pages unless nothing else exists.
-- Keep each “concise snippet summary” to ONE line, facts-only, no filler.
 - Order results by usefulness for user task (best first).
 - If nothing is relevant, leave “Relevant Sources” empty and explain why.
+- NEVER select links you're already aware of
 
 <WEB_SEARCH_JSON>
 {{websearch_results}}
@@ -23,12 +23,10 @@ You MUST:
 
 ## Relevant Sources
 
-1. <title>
-   - <url>
-   - <one-line facts-only summary>
+1. title
+   - url
 
-2. <title>
-   - <url>
-   - <one-line facts-only summary>
+2. title
+   - url
 
-(up to 8 results; leave empty if nothing is relevant)
+(up to 4 results; leave empty if nothing is relevant)

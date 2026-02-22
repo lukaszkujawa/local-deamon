@@ -6,6 +6,7 @@ from localdeamon import console as c
 
 
 _llm_instance: Optional[BaseChatModel] = None
+_bound_llm_instance: Optional[BaseChatModel] = None
 
 
 def _create_ollama_llm(config: Config) -> BaseChatModel:
@@ -29,7 +30,11 @@ def _create_ollama_llm(config: Config) -> BaseChatModel:
     if num_batch:
         kwargs["num_batch"] = num_batch
 
-    c.info(f"🤖 [LLM] Provider: Ollama | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Num CTX: {num_ctx or 'default'} | Base URL: {base_url or 'default'}")
+    num_gpu = config.get_num_gpu()
+    if num_gpu:
+        kwargs["num_gpu"] = num_gpu
+
+    c.info(f"🤖 [LLM] Provider: Ollama | Model: {config.model_name} | Temperature: {kwargs['temperature']} | Num CTX: {num_ctx or 'default'} | Num GPU: {num_gpu or 'default'} | Base URL: {base_url or 'default'}")
 
     return ChatOllama(**kwargs)
 
@@ -122,6 +127,33 @@ def get_llm(force_reload: bool = False) -> BaseChatModel:
 
 def reload_llm() -> BaseChatModel:
     """Reload the LLM instance with fresh configuration"""
+    global _bound_llm_instance
     from localdeamon.config import reload_config
     reload_config()
+    _bound_llm_instance = None
     return get_llm(force_reload=True)
+
+
+def get_bound_llm(force_reload: bool = False) -> BaseChatModel:
+    """
+    Get or create a tool-bound LLM instance.
+
+    This function caches the bound LLM to avoid recreating it on every Daemon instance.
+    The bound LLM includes all registered tools and is ready for agentic execution.
+
+    Args:
+        force_reload: If True, recreate the bound LLM instance
+
+    Returns:
+        BaseChatModel: LLM instance with tools bound
+    """
+    global _bound_llm_instance
+
+    if _bound_llm_instance is not None and not force_reload:
+        return _bound_llm_instance
+
+    from localdeamon.tool_registry import Tool
+
+    base_llm = get_llm(force_reload=force_reload)
+    _bound_llm_instance = base_llm.bind_tools(Tool.all())
+    return _bound_llm_instance

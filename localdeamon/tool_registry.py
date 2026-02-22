@@ -11,6 +11,8 @@ before they are added to the agent context.
 from typing import Callable, List, Optional, Dict, Union, TYPE_CHECKING
 from langchain_core.tools import tool as langchain_tool, BaseTool
 from localdeamon import console as c
+from localdeamon.token_utils import estimate_tokens, format_tokens
+from localdeamon.tool_response import ToolResponse
 
 if TYPE_CHECKING:
     from localdeamon.deamon import Deamon
@@ -160,10 +162,10 @@ class ToolRegistry:
         Imports tool modules which triggers @tool decorator registration.
         Call this once during daemon initialization.
         """
-        from localdeamon.tools import exec, read, write, fetch, search
+        from localdeamon.tools import exec, read, write, fetch, search, think
 
     @classmethod
-    def execute_tool_call(cls, tool_call: dict, daemon: Optional["Deamon"] = None, verbose: bool = True) -> str:
+    def execute_tool_call(cls, tool_call: dict, daemon: Optional["Deamon"] = None, verbose: bool = True) -> ToolResponse:
         """
         Execute a single tool call and apply post-processor if registered.
 
@@ -173,7 +175,7 @@ class ToolRegistry:
             verbose: Whether to print execution details
 
         Returns:
-            Result string from tool execution (or error message)
+            ToolResponse wrapping the result (behaves like string but has tool_name attribute)
             If post-processor is registered, returns processed output
         """
         tool_name = tool_call["name"]
@@ -187,7 +189,7 @@ class ToolRegistry:
             error_msg = f"Tool '{tool_name}' not found"
             if verbose:
                 c.error(error_msg)
-            return error_msg
+            return ToolResponse(error_msg, tool_name=tool_name)
 
         try:
             result = tool.invoke(tool_args)
@@ -207,18 +209,31 @@ class ToolRegistry:
 
             if verbose:
                 preview = result_str[:80] + '...' if len(result_str) > 80 else result_str
+                token_count = estimate_tokens(result_str)
                 c.success(f"Result: {preview}")
+                c.info(f"Tokens: {format_tokens(token_count)}")
 
-            return result_str
+            return ToolResponse(result_str, tool_name=tool_name)
 
         except Exception as e:
             error_msg = f"{tool_name} failed: {e}"
             if verbose:
                 c.error(error_msg)
-            return error_msg
+            return ToolResponse(error_msg, tool_name=tool_name)
 
     @classmethod
-    def execute_tool_calls(cls, tool_calls: list, daemon: Optional["Deamon"] = None, verbose: bool = True) -> dict[str, str]:
+    def execute_tool_calls(cls, tool_calls: list, daemon: Optional["Deamon"] = None, verbose: bool = True) -> dict[str, ToolResponse]:
+        """
+        Execute multiple tool calls and return results.
+
+        Args:
+            tool_calls: List of tool call dicts
+            daemon: Daemon instance (required if tools have post-processors)
+            verbose: Whether to print execution details
+
+        Returns:
+            Dict mapping tool_call_id to ToolResponse (behaves like str but has tool_name)
+        """
         results = {}
 
         for tool_call in tool_calls:
