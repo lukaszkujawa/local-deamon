@@ -4,6 +4,7 @@ import json
 import os
 import random
 import string
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -12,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from localdeamon.post_processor import post_processor
 from localdeamon.prompt import Prompt
-from localdeamon.llm import get_llm
+from localdeamon.llm import get_bound_llm
 from localdeamon.console import _normalize_content
 from localdeamon import console as c
 from localdeamon.prompt_logger import invoke_with_logging
@@ -84,9 +85,13 @@ def extract_web_doc(daemon, fetch_result_json: str) -> str:
         )
 
         messages = [daemon.ctx.messages[1], HumanMessage(content=rendered)]
-        llm_with_structure = get_llm().with_structured_output(WebDocumentExtraction)
+        llm_with_structure = get_bound_llm().with_structured_output(WebDocumentExtraction)
 
+        c.info("Extracting document structure...")
+        start_time = time.perf_counter()
         extraction = llm_with_structure.invoke(messages)
+        elapsed = time.perf_counter() - start_time
+        c.info(f"Document extraction completed in {elapsed:.2f}s")
 
         if hasattr(extraction, 'content'):
             c.warning("Structured output returned AIMessage instead of model - this shouldn't happen")

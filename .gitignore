@@ -7,4 +7,5 @@ __pycache__/
 *.pyc
 logs/*
 !logs/.gitkeep
-workspace/*.env.bak
+workspace/*
+.env.bak

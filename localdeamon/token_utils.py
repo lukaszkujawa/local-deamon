@@ -83,3 +83,80 @@ def extract_token_usage(response: AIMessage) -> Tuple[int, int]:
         )
 
     return (0, 0)
+
+
+def extract_completion_duration(response: AIMessage) -> float:
+    """
+    Extract completion generation duration from LLM response metadata.
+
+    For Ollama: Uses eval_duration (nanoseconds) which is completion-only time.
+    For OpenAI/Anthropic: Falls back to total invoke duration.
+
+    Args:
+        response: AI response message
+
+    Returns:
+        Duration in seconds, or 0 if not available
+    """
+    if not hasattr(response, 'response_metadata'):
+        return 0.0
+
+    metadata = response.response_metadata
+
+    # Ollama format - eval_duration is completion-only time in nanoseconds
+    if 'eval_duration' in metadata:
+        nanoseconds = metadata.get('eval_duration', 0)
+        return nanoseconds / 1_000_000_000.0
+
+    # Fallback to total invoke duration for OpenAI/Anthropic
+    return metadata.get('invoke_duration_seconds', 0.0)
+
+
+def extract_total_duration(response: AIMessage) -> float:
+    """
+    Extract total LLM invocation duration (prompt processing + completion generation).
+
+    For Ollama: Uses total_duration or sum of prompt_eval_duration + eval_duration.
+    For OpenAI/Anthropic: Uses invoke_duration_seconds.
+
+    Args:
+        response: AI response message
+
+    Returns:
+        Duration in seconds, or 0 if not available
+    """
+    if not hasattr(response, 'response_metadata'):
+        return 0.0
+
+    metadata = response.response_metadata
+
+    # Ollama format - use total_duration if available
+    if 'total_duration' in metadata:
+        nanoseconds = metadata.get('total_duration', 0)
+        return nanoseconds / 1_000_000_000.0
+
+    # Ollama fallback - sum prompt_eval_duration + eval_duration
+    if 'prompt_eval_duration' in metadata and 'eval_duration' in metadata:
+        prompt_ns = metadata.get('prompt_eval_duration', 0)
+        eval_ns = metadata.get('eval_duration', 0)
+        return (prompt_ns + eval_ns) / 1_000_000_000.0
+
+    # OpenAI/Anthropic - use invoke_duration_seconds
+    return metadata.get('invoke_duration_seconds', 0.0)
+
+
+def calculate_tokens_per_second(tokens: int, duration: float) -> float:
+    """
+    Calculate tokens per second.
+
+    Args:
+        tokens: Number of tokens
+        duration: Duration in seconds
+
+    Returns:
+        Tokens per second, or 0 if duration is 0
+    """
+    if duration <= 0:
+        return 0.0
+
+    return tokens / duration

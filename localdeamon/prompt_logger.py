@@ -2,6 +2,7 @@
 
 import json
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import List, Any, Dict
@@ -190,6 +191,13 @@ def invoke_with_logging(llm, messages: List[BaseMessage]) -> AIMessage:
     prompt_tokens = _estimate_prompt_tokens(messages)
     c.info(f"Prompt: {format_tokens(prompt_tokens)} estimated")
 
+    start_time = time.perf_counter()
     response = llm.invoke(messages)
+    elapsed_time = time.perf_counter() - start_time
+
+    if not hasattr(response, 'response_metadata'):
+        response.response_metadata = {}
+    response.response_metadata['invoke_duration_seconds'] = elapsed_time
+
     log_prompt_and_response(messages, response, llm)
     return response

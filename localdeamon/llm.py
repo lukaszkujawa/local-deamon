@@ -135,18 +135,6 @@ def reload_llm() -> BaseChatModel:
 
 
 def get_bound_llm(force_reload: bool = False) -> BaseChatModel:
-    """
-    Get or create a tool-bound LLM instance.
-
-    This function caches the bound LLM to avoid recreating it on every Daemon instance.
-    The bound LLM includes all registered tools and is ready for agentic execution.
-
-    Args:
-        force_reload: If True, recreate the bound LLM instance
-
-    Returns:
-        BaseChatModel: LLM instance with tools bound
-    """
     global _bound_llm_instance
 
     if _bound_llm_instance is not None and not force_reload:

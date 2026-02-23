@@ -7,7 +7,7 @@ from localdeamon.console import _normalize_content
 from localdeamon import console as c
 from localdeamon.prompt_logger import invoke_with_logging
 from localdeamon.daemon_context import set_current_daemon
-from localdeamon.token_utils import extract_token_usage, format_tokens
+from localdeamon.token_utils import extract_token_usage, extract_completion_duration, extract_total_duration, calculate_tokens_per_second, format_tokens
 
 try:
     from ollama._types import ResponseError
@@ -32,6 +32,8 @@ class Deamon:
     def _safe_invoke(self, messages: list, retry: int = 0) -> AIMessage:
         try:
             return invoke_with_logging(self.llm, messages)
+
+
         except ResponseError as e:
             if "json" in str(e).lower() and retry < 2:
                 c.warning(f"Retry {retry + 1}/2 - Malformed tool call JSON")
@@ -41,11 +43,15 @@ class Deamon:
     def run(self, ctx: Context) -> str:
         self.ctx = ctx
         set_current_daemon(self)
+
         initial_response = self._safe_invoke(self.ctx.messages)
 
         prompt_tokens, completion_tokens = extract_token_usage(initial_response)
+        completion_duration = extract_completion_duration(initial_response)
+        total_duration = extract_total_duration(initial_response)
         if prompt_tokens > 0 or completion_tokens > 0:
-            c.info(f"LLM Tokens: {format_tokens(prompt_tokens)} prompt + {format_tokens(completion_tokens)} completion = {format_tokens(prompt_tokens + completion_tokens)} total")
+            tokens_per_sec = calculate_tokens_per_second(completion_tokens, completion_duration)
+            c.info(f"LLM Tokens: {format_tokens(prompt_tokens)} prompt + {format_tokens(completion_tokens)} completion = {format_tokens(prompt_tokens + completion_tokens)} total ({tokens_per_sec:.1f} tok/s, {total_duration:.2f}s)")
 
         return self._agentic_run(initial_response)
 
@@ -72,8 +78,11 @@ class Deamon:
             current_response = self._safe_invoke(self.ctx.messages)
 
             prompt_tokens, completion_tokens = extract_token_usage(current_response)
+            completion_duration = extract_completion_duration(current_response)
+            total_duration = extract_total_duration(current_response)
             if prompt_tokens > 0 or completion_tokens > 0:
-                c.info(f"LLM Tokens: {format_tokens(prompt_tokens)} prompt + {format_tokens(completion_tokens)} completion = {format_tokens(prompt_tokens + completion_tokens)} total")
+                tokens_per_sec = calculate_tokens_per_second(completion_tokens, completion_duration)
+                c.info(f"LLM Tokens: {format_tokens(prompt_tokens)} prompt + {format_tokens(completion_tokens)} completion = {format_tokens(prompt_tokens + completion_tokens)} total ({tokens_per_sec:.1f} tok/s, {total_duration:.2f}s)")
 
         c.warning(f"Max iterations ({max_iterations}) reached")
         return _normalize_content(current_response.content)

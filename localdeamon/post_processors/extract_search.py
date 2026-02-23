@@ -4,7 +4,7 @@ import json
 from langchain_core.messages import HumanMessage
 from localdeamon.post_processor import post_processor
 from localdeamon.prompt import Prompt
-from localdeamon.llm import get_llm
+from localdeamon.llm import get_bound_llm
 from localdeamon.console import _normalize_content
 from localdeamon import console as c
 from localdeamon.prompt_logger import invoke_with_logging
@@ -34,7 +34,7 @@ def extract_search_results(daemon, search_results_json: str) -> str:
 
         messages = daemon.ctx.messages + [HumanMessage(content=rendered)]
 
-        resp = invoke_with_logging(get_llm(), messages)
+        resp = invoke_with_logging(get_bound_llm(), messages)
 
         return _normalize_content(resp.content)
 
