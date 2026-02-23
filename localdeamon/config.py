@@ -5,7 +5,7 @@ from functools import lru_cache, cached_property
 from typing import Optional
 
 
-# Provider-specific environment variable mappings
+
 API_BASE_VARS = {
     'ollama': 'OLLAMA_API_BASE',
 }
@@ -30,62 +30,49 @@ class Config:
 
     @cached_property
     def provider(self) -> str:
-        """Extract provider from model string (e.g., 'openai/gpt-4' -> 'openai')"""
         return self.agent_llm_model.split('/')[0] if '/' in self.agent_llm_model else 'openai'
 
     @cached_property
     def model_name(self) -> str:
-        """Extract model name from model string (e.g., 'openai/gpt-4' -> 'gpt-4')"""
         return self.agent_llm_model.split('/', 1)[1] if '/' in self.agent_llm_model else self.agent_llm_model
 
     def get_api_key(self, provider: Optional[str] = None) -> Optional[str]:
-        """Get API key for the specified provider"""
         provider = provider or self.provider
         return os.getenv(f"{provider.upper()}_API_KEY")
 
     def get_base_url(self, provider: Optional[str] = None) -> Optional[str]:
-        """Get base URL for the specified provider"""
         provider = provider or self.provider
         return os.getenv(f"{provider.upper()}_BASE_URL")
 
     def get_provider_config(self, key: str, default: Optional[str] = None) -> Optional[str]:
-        """Get provider-specific configuration value"""
         return os.getenv(f"{self.provider.upper()}_{key.upper()}", default)
 
     def get_temperature(self) -> float:
-        """Get temperature setting for the provider"""
         temp = self.get_provider_config("TEMPERATURE", "0.7")
         return float(temp)
 
     def get_num_ctx(self) -> Optional[int]:
-        """Get context window size (Ollama-specific)"""
         ctx = self.get_provider_config("NUM_CTX")
         return int(ctx) if ctx else None
 
     def get_num_batch(self) -> Optional[int]:
-        """Get batch size (Ollama-specific)"""
         batch = self.get_provider_config("NUM_BATCH")
         return int(batch) if batch else None
 
     def get_num_gpu(self) -> Optional[int]:
-        """Get number of GPUs (Ollama-specific)"""
         gpu = self.get_provider_config("NUM_GPU")
         return int(gpu) if gpu else None
 
     def get_scraper_url(self) -> str:
-        """Get URL for the scraper service"""
         return os.getenv("HOST_GET_URL", "http://127.0.0.1:8000")
 
     def get_search_url(self) -> str:
-        """Get URL for the search service"""
         return os.getenv("HOST_WEB_SEARCH", "http://127.0.0.1:8001")
 
     def get_workspace_dir(self) -> str:
-        """Get workspace directory path"""
         return os.getenv("WORKSPACE_DIR", "./workspace")
 
     def setup_llm(self) -> str:
-        """Setup environment variables for LLM provider"""
         api_key = self.get_api_key()
         if api_key:
             os.environ[f"{self.provider.upper()}_API_KEY"] = api_key
@@ -99,7 +86,6 @@ class Config:
 
     @classmethod
     def from_env(cls) -> "Config":
-        """Create Config from environment variables"""
         _load_dotenv_once()
         return cls(
             agent_llm_model=os.getenv("AGENT_LLM_MODEL", "openai/gpt-4o"),

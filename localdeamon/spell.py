@@ -10,7 +10,6 @@ _context = threading.local()
 
 @contextmanager
 def spell_context(spell_name: str):
-    """Context manager to track the currently executing spell"""
     previous = getattr(_context, 'current_spell', None)
     _context.current_spell = spell_name
     try:
@@ -20,17 +19,14 @@ def spell_context(spell_name: str):
 
 
 def get_current_spell() -> Optional[str]:
-    """Get the name of the currently executing spell"""
     return getattr(_context, 'current_spell', None)
 
 
 class SpellCastingFailed(Exception):
-    """Raised when spell casting fails due to type mismatch"""
     pass
 
 
 class Spell:
-    """A typed function wrapper with runtime type checking and composition support"""
 
     def __init__(self, fn: Callable[[Any], Any], name: Optional[str] = None):
         self.fn = beartype(fn)
@@ -50,7 +46,6 @@ class Spell:
                 ) from e
 
     def __or__(self, other: 'Spell') -> 'Spell':
-        """Compose two spells into a pipeline using | operator"""
         def chained(*args: Any, **kwargs: Any) -> Any:
             intermediate = self(*args, **kwargs)
             return other(intermediate)
@@ -59,5 +54,4 @@ class Spell:
 
 
 def spell(fn: Callable[[Any], Any]) -> Spell:
-    """Decorator to create a Spell from a function"""
     return Spell(fn)

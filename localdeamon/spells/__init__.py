@@ -1,4 +1,3 @@
-"""Spell collection for the daemon framework."""
 
 from localdeamon.spells.understand import understand
 from localdeamon.spells.summon_daemon import summon_daemon

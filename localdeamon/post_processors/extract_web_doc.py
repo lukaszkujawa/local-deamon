@@ -1,10 +1,9 @@
-"""Extract web document post-processor: Converts raw fetched web content to clean Markdown."""
-
 import json
 import os
 import random
 import string
 import time
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -13,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from localdeamon.post_processor import post_processor
 from localdeamon.prompt import Prompt
-from localdeamon.llm import get_bound_llm
+from localdeamon.llm import get_llm
 from localdeamon.console import _normalize_content
 from localdeamon import console as c
 from localdeamon.prompt_logger import invoke_with_logging
@@ -62,17 +61,6 @@ def _save_document_details(filename: str, title: str, url: str, detailed_content
 
 @post_processor
 def extract_web_doc(daemon, fetch_result_json: str) -> str:
-    """
-    Extract and summarize web document content using daemon's context.
-    Keeps only Document Info in context, saves details to workspace file.
-
-    Args:
-        daemon: Daemon instance with full conversation context
-        fetch_result_json: Raw JSON from fetch tool containing URL and content
-
-    Returns:
-        Compact Markdown with Document Info section only
-    """
     try:
         fetch_data = json.loads(fetch_result_json)
         document_url = fetch_data.get("url", "unknown")
@@ -85,11 +73,13 @@ def extract_web_doc(daemon, fetch_result_json: str) -> str:
         )
 
         messages = [daemon.ctx.messages[1], HumanMessage(content=rendered)]
-        llm_with_structure = get_bound_llm().with_structured_output(WebDocumentExtraction)
+        llm_with_structure = get_llm().with_structured_output(WebDocumentExtraction)
 
         c.info("Extracting document structure...")
         start_time = time.perf_counter()
-        extraction = llm_with_structure.invoke(messages)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*Pydantic serializer warnings.*")
+            extraction = llm_with_structure.invoke(messages)
         elapsed = time.perf_counter() - start_time
         c.info(f"Document extraction completed in {elapsed:.2f}s")
 

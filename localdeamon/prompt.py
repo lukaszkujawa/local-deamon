@@ -29,12 +29,6 @@ class Prompt:
         return cls(name, path.read_text(encoding="utf-8"))
 
     def render(self, **kwargs) -> str:
-        """
-        Render prompt with variable substitution.
-
-        Raises:
-            KeyError: If required variables are missing
-        """
         missing = self.variables - kwargs.keys()
         if missing:
             raise KeyError(f"Missing variables for '{self.name}': {missing}")

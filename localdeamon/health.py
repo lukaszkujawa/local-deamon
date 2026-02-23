@@ -1,4 +1,3 @@
-"""Service health check utilities."""
 
 import sys
 import urllib.request
@@ -12,23 +11,12 @@ from localdeamon.config import Config
 
 @dataclass
 class ServiceHealth:
-    """Health status of a service."""
     name: str
     url: str
     healthy: bool
 
 
 def check_service_health(service_name: str, url: str) -> bool:
-    """
-    Check if a service is healthy by hitting its /health endpoint.
-
-    Args:
-        service_name: Name of the service (for logging)
-        url: Base URL of the service
-
-    Returns:
-        True if service is healthy, False otherwise
-    """
     try:
         req = urllib.request.Request(f"{url}/health", method='GET')
         with urllib.request.urlopen(req, timeout=2) as response:
@@ -38,15 +26,6 @@ def check_service_health(service_name: str, url: str) -> bool:
 
 
 def check_all_services(config: Config) -> List[ServiceHealth]:
-    """
-    Check all required services.
-
-    Args:
-        config: Configuration object
-
-    Returns:
-        List of ServiceHealth objects
-    """
     scraper_url = config.get_scraper_url()
     search_url = config.get_search_url()
 
@@ -57,12 +36,6 @@ def check_all_services(config: Config) -> List[ServiceHealth]:
 
 
 def verify_services_or_exit(config: Config) -> None:
-    """
-    Verify all required services are healthy, exit with error if not.
-
-    Args:
-        config: Configuration object
-    """
     services = check_all_services(config)
 
     if all(s.healthy for s in services):

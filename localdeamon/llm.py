@@ -10,7 +10,6 @@ _bound_llm_instance: Optional[BaseChatModel] = None
 
 
 def _create_ollama_llm(config: Config) -> BaseChatModel:
-    """Create an Ollama LLM instance"""
     from langchain_ollama import ChatOllama
 
     kwargs = {
@@ -40,7 +39,6 @@ def _create_ollama_llm(config: Config) -> BaseChatModel:
 
 
 def _create_openai_llm(config: Config) -> BaseChatModel:
-    """Create an OpenAI LLM instance"""
     from langchain_openai import ChatOpenAI
 
     kwargs = {
@@ -63,7 +61,6 @@ def _create_openai_llm(config: Config) -> BaseChatModel:
 
 
 def _create_anthropic_llm(config: Config) -> BaseChatModel:
-    """Create an Anthropic LLM instance"""
     from langchain_anthropic import ChatAnthropic
 
     kwargs = {
@@ -72,7 +69,7 @@ def _create_anthropic_llm(config: Config) -> BaseChatModel:
         "max_tokens": config.max_tokens,
     }
 
-    # Add API key if configured
+
     api_key = config.get_api_key()
     if api_key:
         kwargs["api_key"] = api_key
@@ -83,23 +80,6 @@ def _create_anthropic_llm(config: Config) -> BaseChatModel:
 
 
 def get_llm(force_reload: bool = False) -> BaseChatModel:
-    """
-    Get or create the LLM instance based on configuration.
-
-    Supports multiple providers:
-    - ollama: Local Ollama models (e.g., "ollama/gpt-oss:20b")
-    - openai: OpenAI models (e.g., "openai/gpt-4o-mini")
-    - anthropic: Anthropic models (e.g., "anthropic/claude-3-5-sonnet-20241022")
-
-    Args:
-        force_reload: If True, recreate the LLM instance
-
-    Returns:
-        BaseChatModel: The configured LLM instance
-
-    Raises:
-        ValueError: If the provider is not supported
-    """
     global _llm_instance
 
     if _llm_instance is not None and not force_reload:
@@ -108,7 +88,7 @@ def get_llm(force_reload: bool = False) -> BaseChatModel:
     config = get_config()
     provider = config.provider.lower()
 
-    # Provider factory mapping
+
     provider_factories = {
         "ollama": _create_ollama_llm,
         "openai": _create_openai_llm,
@@ -126,7 +106,6 @@ def get_llm(force_reload: bool = False) -> BaseChatModel:
 
 
 def reload_llm() -> BaseChatModel:
-    """Reload the LLM instance with fresh configuration"""
     global _bound_llm_instance
     from localdeamon.config import reload_config
     reload_config()

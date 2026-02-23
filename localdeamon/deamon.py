@@ -17,12 +17,6 @@ except ImportError:
 
 
 class Deamon:
-    """
-    Main agent daemon that orchestrates LLM and tool interactions.
-
-    Manages the agentic loop: LLM -> Tool Calls -> Results -> LLM
-    until the task is complete.
-    """
 
     def __init__(self):
         Tool.register_builtin()
